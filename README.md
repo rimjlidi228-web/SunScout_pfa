@@ -59,6 +59,7 @@ Exemple réponse :
 3-Le servo s’oriente vers la lumière forte
 4-Les données sont envoyées au dashboard
 5-L’utilisateur visualise en temps réel
+
 **🖥️ Interface Web**
 Affichage capteurs LDR
 Position du panneau
@@ -66,24 +67,28 @@ Graphiques temps réel
 Historique des mouvements
 Indicateur jour/nuit
 LED virtuelle
+
 **⚠️ Problèmes rencontrés**
 Instabilité WiFi → reconnexion automatique
 Déséquilibre capteurs → calibration + threshold
 Oscillation servo → speedStep réduit
 Bruit des capteurs → filtrage logiciel
+
 **🚀 Améliorations futures**
 Suivi solaire biaxial
 WebSockets (temps réel)
 Cloud IoT (MQTT / AWS)
 Mesure énergie (INA219)
 Mode économie énergie (deep sleep ESP32)
+
 **👨‍💻 Équipe**
 Farah Benarbi
 Amani Arouri
 Rym jlidi
 Baraa Benarfi
 Mohamed El Mehdi Aouni
-🎓 Contexte académique
+
+**🎓 Contexte académique**
 
 Projet réalisé à la Faculté des Sciences de Tunis (FST)
 Licence LCE2 — IoT & Systèmes embarqués
