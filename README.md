@@ -11,6 +11,7 @@ Optimiser le rendement des panneaux solaires ☀️
 Automatiser le suivi solaire 🤖
 Fournir une supervision en temps réel 🌐
 Réaliser une solution IoT simple et économique ⚙️
+
 **🧱 Architecture du système**
 |Couche	| Composants	|Rôle|
 |-------|-------------|----|
