@@ -70,8 +70,8 @@ void loop() {
   server.handleClient();
 
   // ================= LDR READ =================
-  left = analogRead(LDR_LEFT);
-  right = analogRead(LDR_RIGHT);
+  left =4095 - analogRead(LDR_LEFT);
+  right = 4095 - analogRead(LDR_RIGHT);
 
   Serial.print("LDR Left: ");
   Serial.print(left);
