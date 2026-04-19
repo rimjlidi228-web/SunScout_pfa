@@ -18,6 +18,7 @@ Réaliser une solution IoT simple et économique ⚙️
 |Logique	|ESP32	|Traitement + décision|
 |Actionneur	|Servo SG90	|Orientation panneau|
 |Interface	|Web (HTML/CSS/JS)|Dashboard|
+
 **🔧 Matériel utilisé**
 |Composant |Référence|
 |----------|---------|
@@ -28,11 +29,13 @@ Réaliser une solution IoT simple et économique ⚙️
 |Charge	|TP4056|
 |Panneau solaire|	5V 1W/2W|
 |LED	|5mm + 220Ω|
+
 **💻 Logiciels utilisés**
 Arduino IDE 2.x
 Visual Studio Code
 Wokwi Simulator
 Bibliothèques ESP32 (WiFi, WebServer, ESP32Servo)
+
 **⚙️ Paramètres système**
 | Paramètre | Valeur | Description |
 |-----------|--------|-------------|
