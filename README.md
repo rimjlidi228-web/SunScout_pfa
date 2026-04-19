@@ -42,6 +42,7 @@ Bibliothèques ESP32 (WiFi, WebServer, ESP32Servo)
 |threshold |200	|Sensibilité mouvement|
 |speedStep	|2°|	Pas de rotation servo|
 |loop delay	|80 ms|	Fréquence mise à jour|
+
 **🌐 API REST**
 Endpoint :
 GET /data
