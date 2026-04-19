@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SunScout — Solar Tracker Dashboard</title>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    /* ==============================
+       RESET & BASE
+    ============================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+    :root {
+      --bg:        #0c0c0e;
+      --card:      #141417;
+      --border:    #252529;
+      --text:      #e8e8ea;
+      --muted:     #5a5a6a;
+      --primary:   #f59e0b;   /* amber */
+      --green:     #10b981;
+      --red:       #e11d48;
+      --blue:      #6366f1;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Mono', 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ==============================
+       LAYOUT
+    ============================== */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.5rem 1.25rem 3rem;
+    }
+
+    .grid-2 { display: grid; gap: 1rem; grid-template-columns: repeat(2, 1fr); }
+    .grid-4 { display: grid; gap: 1rem; grid-template-columns: repeat(4, 1fr); }
+    .grid-chart { display: grid; gap: 1.25rem; grid-template-columns: 2fr 1fr; }
+
+    @media (max-width: 900px) {
+      .grid-4  { grid-template-columns: repeat(2, 1fr); }
+      .grid-chart { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 540px) {
+      .grid-4 { grid-template-columns: 1fr; }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .space-y > * + * { margin-top: 1.25rem; }
+
+    /* ==============================
+       CARD
+    ============================== */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--muted);
+      margin-bottom: .5rem;
+    }
+
+    .card-value {
+      font-size: 2.25rem;
+      font-weight: 400;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .card-unit {
+      font-size: .85rem;
+      color: var(--muted);
+      margin-left: .25rem;
+    }
+
+    /* ==============================
+       HEADER
+    ============================== */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.25rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+
+    .brand-icon {
+      width: 40px; height: 40px;
+      background: rgba(245,158,11,.1);
+      border: 1px solid rgba(245,158,11,.3);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem;
+    }
+
+    .brand-name {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: .05em;
+    }
+
+    .brand-sub {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      margin-top: 2px;
+    }
+
+    .badges { display: flex; gap: .75rem; align-items: center; }
+
+    .badge {
+      display: flex; align-items: center; gap: .4rem;
+      padding: .35rem .75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .badge-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .4; }
+    }
+
+    .badge-conn { color: var(--green); }
+    .badge-day  { color: var(--primary); border-color: rgba(245,158,11,.3); }
+    .badge-night { color: #818cf8; border-color: rgba(99,102,241,.3); }
+
+    /* ==============================
+       PROGRESS BAR
+    ============================== */
+    .progress-wrap {
+      margin-top: .85rem;
+      height: 5px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      border-radius: 99px;
+      transition: width .6s ease, background-color .4s ease;
+    }
+
+    .bar-green { background: var(--green); }
+    .bar-amber { background: var(--primary); }
+    .bar-red   { background: var(--red); }
+
+    /* ==============================
+       SERVO GAUGE (SVG arc)
+    ============================== */
+    .gauge-card {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .gauge-info { flex: 1; }
+
+    .gauge-wrap {
+      flex-shrink: 0;
+      width: 100px; height: 100px;
+    }
+
+    .gauge-wrap svg { transform: rotate(-90deg); }
+
+    #gaugeArc {
+      transition: stroke-dashoffset .6s cubic-bezier(.34,1.56,.64,1);
+      filter: drop-shadow(0 0 6px rgba(245,158,11,.6));
+    }
+
+    /* ==============================
+       LED / STATUS CARD
+    ============================== */
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .status-left {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+
+    .status-icon {
+      width: 36px; height: 36px;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+    }
+
+    .status-icon.green  { background: rgba(16,185,129,.12); color: var(--green); }
+    .status-icon.red    { background: rgba(225,29,72,.12);  color: var(--red); }
+    .status-icon.amber  { background: rgba(245,158,11,.12); color: var(--primary); }
+
+    .status-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+    .status-desc  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    .status-badge {
+      padding: .3rem .85rem;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .status-badge.on  { background: var(--green); color: #000; box-shadow: 0 0 12px rgba(16,185,129,.4); }
+    .status-badge.off { background: rgba(225,29,72,.15); color: var(--red); }
+    .status-badge.opt { color: var(--green); font-size: 1rem; }
+    .status-badge.off2 { color: var(--red); font-size: 1rem; }
+    .status-badge.warn { color: var(--primary); font-size: 1rem; }
+
+    /* ==============================
+       CHART
+    ============================== */
+    .chart-card { display: flex; flex-direction: column; }
+
+    .chart-header {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      margin-bottom: 1rem;
+    }
+
+    .chart-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .chart-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .chart-icon { color: var(--primary); font-size: 1rem; }
+
+    .chart-body { position: relative; height: 280px; }
+
+    /* ==============================
+       HISTORY LOG
+    ============================== */
+    .log-card {
+      display: flex;
+      flex-direction: column;
+      max-height: 400px;
+    }
+
+    .log-header {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding-bottom: .75rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: .75rem;
+    }
+
+    .log-scroll {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .log-scroll::-webkit-scrollbar { width: 4px; }
+    .log-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .log-empty {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      padding: 2.5rem 0;
+    }
+
+    .log-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .55rem .75rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: .5rem;
+      animation: fadeIn .25s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .log-time { font-size: 11px; color: var(--muted); }
+    .log-angles { display: flex; align-items: center; gap: .5rem; font-size: 13px; }
+    .log-from { color: var(--muted); font-family: monospace; }
+    .log-to   { color: var(--primary); font-weight: 700; font-family: monospace; }
+    .log-arrow { color: var(--primary); font-size: 11px; }
+
+    /* ==============================
+       FOOTER
+    ============================== */
+    footer {
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2.5rem;
+    }
+
+    footer a { color: var(--primary); text-decoration: none; }
+
+    /* ==============================
+       ANIMATED SUN ICON
+    ============================== */
+    @keyframes spin-slow {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    .spin-slow { animation: spin-slow 10s linear infinite; display: inline-block; }
+
+    /* ==============================
+       VALUE FLASH ON UPDATE
+    ============================== */
+    @keyframes flash {
+      0%   { color: var(--primary); }
+      100% { color: var(--text); }
+    }
+    .flash { animation: flash .5s ease; }
+  </style>
+</head>
+
+<body>
+<div class="container">
+
+  <!-- ===== HEADER ===== -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon"><span class="spin-slow">&#9728;</span></div>
+      <div>
+        <div class="brand-name">SUNSCOUT</div>
+        <div class="brand-sub">ESP32 Tracker / Tunisia</div>
+      </div>
+    </div>
+    <div class="badges">
+      <div class="badge badge-conn">
+        <div class="badge-dot"></div>
+        Connected
+      </div>
+      <div class="badge" id="dayNightBadge">&#9728; DAY</div>
+    </div>
+  </header>
+
+  <!-- ===== SPACE-Y WRAPPER ===== -->
+  <div class="space-y">
+
+    <!-- ===== ROW 1 — 4 SENSOR CARDS ===== -->
+    <div class="grid-4">
+
+      <!-- LDR Left -->
+      <div class="card">
+        <div class="card-label">Sensor LDR / Left</div>
+        <div>
+          <span class="card-value" id="valLeft">2000</span>
+          <span class="card-unit">lx</span>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-bar bar-amber" id="barLeft" style="width:49%"></div>
+        </div>
+      </div>
+
+      <!-- LDR Right -->
+      <div class="card">
+        <div class="card-label">Sensor LDR / Right</div>
+        <div>
+          <span class="card-value" id="valRight">2000</span>
+          <span class="card-unit">lx</span>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-bar bar-amber" id="barRight" style="width:49%"></div>
+        </div>
+      </div>
+
+      <!-- Servo Angle (spans 2 cols on desktop) -->
+      <div class="card gauge-card" style="grid-column: span 2 / span 2">
+        <div class="gauge-info">
+          <div class="card-label">Servo Motor Angle</div>
+          <div>
+            <span class="card-value" id="valAngle" style="color:var(--primary); font-size:3rem">090</span>
+            <span class="card-unit" style="font-size:1.4rem; color:rgba(245,158,11,.5)">°</span>
+          </div>
+        </div>
+        <div class="gauge-wrap">
+          <svg viewBox="0 0 100 100" width="100" height="100">
+            <!-- Background track -->
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#252529" stroke-width="5"/>
+            <!-- Animated arc -->
+            <circle id="gaugeArc"
+                    cx="50" cy="50" r="40"
+                    fill="none"
+                    stroke="#f59e0b"
+                    stroke-width="5"
+                    stroke-dasharray="251.2"
+                    stroke-dashoffset="125.6"
+                    stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ===== ROW 2 — STATUS CARDS ===== -->
+    <div class="grid-2">
+
+      <!-- LED / Tracking Status -->
+      <div class="card">
+        <div class="status-row">
+          <div class="status-left">
+            <div class="status-icon green" id="ledIcon">&#9889;</div>
+            <div>
+              <div class="status-title">Tracking Status</div>
+              <div class="status-desc" id="ledDesc">Actively following light source</div>
+            </div>
+          </div>
+          <div class="status-badge on" id="ledBadge">ACTIVE</div>
+        </div>
+      </div>
+
+      <!-- Alignment Delta -->
+      <div class="card">
+        <div class="status-row">
+          <div class="status-left">
+            <div class="status-icon amber">&#9888;</div>
+            <div>
+              <div class="status-title">Alignment Delta</div>
+              <div class="status-desc" id="deltaDesc">LDR difference: 0 lx</div>
+            </div>
+          </div>
+          <span class="status-badge opt" id="deltaBadge">OPTIMAL</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ===== ROW 3 — CHART + LOG ===== -->
+    <div class="grid-chart">
+
+      <!-- Real-time Chart -->
+      <div class="card chart-card">
+        <div>
+          <div class="chart-header">
+            <span class="chart-icon">&#9135;</span>
+            <span class="chart-title">Telemetry Graph</span>
+          </div>
+          <div class="chart-sub">Real-time sensor irradiance over time</div>
+        </div>
+        <div class="chart-body" style="margin-top:1rem">
+          <canvas id="telemetryChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Movement Log -->
+      <div class="card log-card">
+        <div class="log-header">
+          <span style="color:var(--primary)">&#9719;</span>
+          <span class="chart-title">Movement Log</span>
+        </div>
+        <div class="log-scroll" id="historyLog">
+          <div class="log-empty">No movement recorded yet</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div><!-- end space-y -->
+
+  <footer>
+    <p>
+      Mode simulation — Pour connecter votre ESP32, changez la variable
+      <code style="color:var(--primary)">ESP32_URL</code> dans le script.
+      &nbsp;|&nbsp; <strong>SunScout</strong> &copy; Tunisia 2025
+    </p>
+  </footer>
+
+</div><!-- end container -->
+
+
+<script>
+/* ================================================================
+   CONFIGURATION
+   ================================================================
+   En production, mettez l'URL de votre ESP32 :
+     const ESP32_URL = "http://192.168.1.42/data";
+   En mode simulation, laissez null :
+     const ESP32_URL = null;         http://172.20.10.2/data
+================================================================ */
+const ESP32_URL ="http://172.20.10.2/data";  
+
+/* ================================================================
+   ÉTAT DE L'APPLICATION
+================================================================ */
+let state = { left: 2000, right: 2000, angle: 90, led: true };
+let history = [];           // log des mouvements
+let chartLabels = [];       // timestamps pour le graphique
+let dataLeft  = [];         // valeurs LDR gauche
+let dataRight = [];         // valeurs LDR droite
+let dataAngle = [];         // angle servo
+const MAX_POINTS = 60;
+
+/* ================================================================
+   SIMULATION (si pas d'ESP32 connecté)
+================================================================ */
+let simTick = 0;
+let simAngle = 90;
+
+function simulateData() {
+  simTick++;
+  const sun = (Math.sin(simTick * 0.05) + 1) / 2;
+  const noise = () => Math.floor((Math.random() - .5) * 200);
+
+  let left, right;
+  if (sun > 0.2) {
+    left  = Math.max(0, Math.min(4095, Math.floor(4095 * sun * (1 - Math.abs(0.2 - sun))) + noise()));
+    right = Math.max(0, Math.min(4095, Math.floor(4095 * sun * (1 - Math.abs(0.8 - sun))) + noise()));
+  } else {
+    left  = Math.max(0, Math.floor(Math.random() * 200));
+    right = Math.max(0, Math.floor(Math.random() * 200));
+  }
+
+  const diff = left - right;
+  let newAngle = simAngle;
+  if (Math.abs(diff) > 200) {
+    if (diff > 0 && newAngle > 0)   newAngle -= 2;
+    if (diff < 0 && newAngle < 180) newAngle += 2;
+  }
+  newAngle = Math.max(0, Math.min(180, newAngle));
+
+  const led = (left > 1500 || right > 1500) && Math.abs(diff) > 200;
+  simAngle = newAngle;
+  return { left, right, angle: newAngle, led };
+}
+
+/* ================================================================
+   FETCH DEPUIS L'ESP32
+================================================================ */
+async function fetchESP32() {
+  const resp = await fetch(ESP32_URL);
+  if (!resp.ok) throw new Error("HTTP " + resp.status);
+  return resp.json(); // { left, right, angle, led }
+}
+
+/* ================================================================
+   MISE À JOUR DE L'UI
+================================================================ */
+function getBarClass(val) {
+  if (val > 3000) return "bar-green";
+  if (val > 1500) return "bar-amber";
+  return "bar-red";
+}
+
+function flashEl(el) {
+  el.classList.remove("flash");
+  void el.offsetWidth; // reflow to restart animation
+  el.classList.add("flash");
+}
+
+function padAngle(n) {
+  return n.toString().padStart(3, "0");
+}
+
+function updateUI(d) {
+  const prevAngle = state.angle;
+  state = d;
+
+  /* ---- LDR Left ---- */
+  const elLeft = document.getElementById("valLeft");
+  elLeft.textContent = d.left;
+  flashEl(elLeft);
+  const barL = document.getElementById("barLeft");
+  barL.style.width = ((d.left / 4095) * 100).toFixed(1) + "%";
+  barL.className = "progress-bar " + getBarClass(d.left);
+
+  /* ---- LDR Right ---- */
+  const elRight = document.getElementById("valRight");
+  elRight.textContent = d.right;
+  flashEl(elRight);
+  const barR = document.getElementById("barRight");
+  barR.style.width = ((d.right / 4095) * 100).toFixed(1) + "%";
+  barR.className = "progress-bar " + getBarClass(d.right);
+
+  /* ---- Servo Angle ---- */
+  const elAngle = document.getElementById("valAngle");
+  elAngle.textContent = padAngle(d.angle);
+  flashEl(elAngle);
+  // Arc: total circumference = 2π×40 ≈ 251.2
+  // offset = 251.2 − (251.2 × angle/180)
+  const offset = (251.2 - (251.2 * d.angle / 180)).toFixed(2);
+  document.getElementById("gaugeArc").style.strokeDashoffset = offset;
+
+  /* ---- Day / Night ---- */
+  const isDay = d.left > 1500 || d.right > 1500;
+  const badge = document.getElementById("dayNightBadge");
+  badge.textContent = isDay ? "☀ DAY" : "☾ NIGHT";
+  badge.className = "badge " + (isDay ? "badge-day" : "badge-night");
+
+  /* ---- LED / Tracking Status ---- */
+  const icon  = document.getElementById("ledIcon");
+  const desc  = document.getElementById("ledDesc");
+  const lb    = document.getElementById("ledBadge");
+  if (d.led) {
+    icon.className = "status-icon green"; lb.className = "status-badge on";
+    lb.textContent = "ACTIVE"; desc.textContent = "Actively following light source";
+  } else {
+    icon.className = "status-icon red"; lb.className = "status-badge off";
+    lb.textContent = "IDLE"; desc.textContent = "Idle / Standby mode";
+  }
+
+  /* ---- Alignment Delta ---- */
+  const diff = Math.abs(d.left - d.right);
+  document.getElementById("deltaDesc").textContent = "LDR difference: " + diff + " lx";
+  const db = document.getElementById("deltaBadge");
+  if (diff < 300)       { db.className = "status-badge opt";  db.textContent = "OPTIMAL"; }
+  else if (diff < 1000) { db.className = "status-badge warn"; db.textContent = "OFFSET"; }
+  else                  { db.className = "status-badge off2"; db.textContent = "MISALIGNED"; }
+
+  /* ---- History Log ---- */
+  if (d.angle !== prevAngle) {
+    const entry = {
+      id: Math.random().toString(36).slice(2, 9),
+      time: new Date().toLocaleTimeString(),
+      from: prevAngle,
+      to: d.angle
+    };
+    history.unshift(entry);
+    if (history.length > 20) history.pop();
+    renderHistory();
+  }
+
+  /* ---- Chart ---- */
+  const now = new Date().toLocaleTimeString([], { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  chartLabels.push(now);
+  dataLeft.push(d.left);
+  dataRight.push(d.right);
+  dataAngle.push(d.angle);
+  if (chartLabels.length > MAX_POINTS) {
+    chartLabels.shift(); dataLeft.shift(); dataRight.shift(); dataAngle.shift();
+  }
+  chart.data.labels = chartLabels;
+  chart.data.datasets[0].data = [...dataLeft];
+  chart.data.datasets[1].data = [...dataRight];
+  chart.data.datasets[2].data = [...dataAngle];
+  chart.update("none"); // no animation for performance
+}
+
+function renderHistory() {
+  const log = document.getElementById("historyLog");
+  if (history.length === 0) {
+    log.innerHTML = '<div class="log-empty">No movement recorded yet</div>';
+    return;
+  }
+  log.innerHTML = history.map(e => `
+    <div class="log-item">
+      <span class="log-time">&#128336; ${e.time}</span>
+      <div class="log-angles">
+        <span class="log-from">${e.from}°</span>
+        <span class="log-arrow">&#8646;</span>
+        <span class="log-to">${e.to}°</span>
+      </div>
+    </div>
+  `).join("");
+}
+
+/* ================================================================
+   CHART.JS INIT
+================================================================ */
+const ctx = document.getElementById("telemetryChart").getContext("2d");
+
+// Pre-fill empty arrays
+for (let i = 0; i < MAX_POINTS; i++) {
+  const d = new Date(Date.now() - (MAX_POINTS - i) * 1000);
+  chartLabels.push(d.toLocaleTimeString([], { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+  dataLeft.push(null); dataRight.push(null); dataAngle.push(null);
+}
+
+const chart = new Chart(ctx, {
+  type: "line",
+  data: {
+    labels: chartLabels,
+    datasets: [
+      {
+        label: "LDR Left",
+        data: dataLeft,
+        borderColor: "#f59e0b",
+        backgroundColor: "rgba(245,158,11,.08)",
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.3,
+        fill: true,
+        yAxisID: "y"
+      },
+      {
+        label: "LDR Right",
+        data: dataRight,
+        borderColor: "#e11d48",
+        backgroundColor: "rgba(225,29,72,.08)",
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.3,
+        fill: true,
+        yAxisID: "y"
+      },
+      {
+        label: "Angle (°)",
+        data: dataAngle,
+        borderColor: "#10b981",
+        backgroundColor: "transparent",
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0,
+        stepped: true,
+        yAxisID: "y2"
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    interaction: { mode: "index", intersect: false },
+    plugins: {
+      legend: {
+        labels: { color: "#9ca3af", font: { family: "Space Mono", size: 11 }, boxWidth: 10 }
+      },
+      tooltip: {
+        backgroundColor: "#141417",
+        borderColor: "#252529",
+        borderWidth: 1,
+        titleColor: "#9ca3af",
+        bodyColor: "#e8e8ea",
+        bodyFont: { family: "Space Mono" }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: "rgba(255,255,255,.04)" },
+        ticks: { color: "#5a5a6a", font: { family: "Space Mono", size: 10 }, maxTicksLimit: 8, maxRotation: 0 }
+      },
+      y: {
+        min: 0, max: 4095,
+        grid: { color: "rgba(255,255,255,.04)" },
+        ticks: { color: "#5a5a6a", font: { family: "Space Mono", size: 10 } }
+      },
+      y2: {
+        position: "right",
+        min: 0, max: 180,
+        grid: { drawOnChartArea: false },
+        ticks: { color: "#10b981", font: { family: "Space Mono", size: 10 } }
+      }
+    }
+  }
+});
+
+/* ================================================================
+   MAIN LOOP — toutes les 1 seconde
+================================================================ */
+async function tick() {
+  try {
+    let data;
+    if (ESP32_URL) {
+      data = await fetchESP32();
+    } else {
+      data = simulateData();
+    }
+    updateUI(data);
+  } catch (err) {
+    console.warn("Erreur de lecture:", err.message);
+  }
+}
+
+// Premier appel immédiat puis toutes les secondes
+tick();
+setInterval(tick, 1000);
+</script>
+</body>
+</html>
