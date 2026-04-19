@@ -1,7 +1,7 @@
 **🌞 SunScout — Smart Solar Tracking System**
 **📌 Description**
 
-SunScout est un système IoT intelligent de suivi solaire basé sur ESP32.
+SunScout est un système IoT intelligent de suivi solaire rechargeable basé sur ESP32.
 Il permet d’optimiser la production d’énergie solaire en orientant automatiquement un panneau vers la source lumineuse la plus intense.
 
 Le système combine capteurs, actionneur et interface web de supervision en temps réel.
